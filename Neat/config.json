@@ -1,0 +1,24 @@
+{
+    "population": 300,
+    "stale_species": 15,
+    "delta":
+    {
+        "delta_disjoint": 2.0,
+        "delta_weights": 0.4,
+        "delta_threshold": 1.0
+    },
+    "chance":
+    {
+        "mutate_connections_chance": 0.25,
+        "perturb_chance": 0.90,
+        "crossover_chance": 0.75,
+        "link_mutation_chance": 2.0,
+        "node_mutation_chance": 0.5,
+        "bias_mutation_chance": 0.4,
+        "disable_mutation_chance": 0.4,
+        "enable_mutation_chance": 0.2
+    },
+    "stepsize": 0.1,
+    "timeout": 100,
+    "max_nodes": 10000
+}

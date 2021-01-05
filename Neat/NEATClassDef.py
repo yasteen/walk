@@ -52,6 +52,7 @@ class Generation:
         for i in range(POPULATION):
             generation.addToSpecies(Individual.basicIndividual())
         ## TODO: intialize run ##
+        return generation
 
     def __str__(self):
         return str(self.__class__) + ": " + str(self.__dict__)
@@ -156,6 +157,8 @@ class Generation:
         species = self.species[self.currentSpecies]
         individual = species.individuals[self.currentIndividual]
         return individual.fitness != 0
+
+
 class Species:
     def __init__(self):
         self.topScore = 0                       # top score in species
@@ -205,7 +208,7 @@ class Individual:
     def basicIndividual():
         individual = Individual()
         individual.maxneuron = INPUTS
-        individual.mutate()
+        individual.mutate(generation)
         return individual()
 
     def __str__(self):
