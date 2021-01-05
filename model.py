@@ -8,6 +8,7 @@ class Part(object):
     def __init__(self, mass: int, size: Tuple[int, int]):
         self.body = pymunk.Body(mass, pymunk.moment_for_box(mass, size))
         self.shape = pymunk.Poly.create_box(self.body, size, 0)
+        self.shape.friction = 0.69
         filter = pymunk.ShapeFilter(group = 0x1)
         self.shape.filter = filter
         self.limbs = []

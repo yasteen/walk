@@ -7,7 +7,7 @@ from typing import List
 from typing import Dict
 
 
-with open('Neat/config.json', 'r') as f:
+with open('neat/config.json', 'r') as f:
     config = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
 
 

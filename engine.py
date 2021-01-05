@@ -5,21 +5,37 @@ import sys
 from creatures import human
 
 
-def addFloor(space):
-    floor = pymunk.Body(body_type = pymunk.Body.STATIC)
+def addBoundaries(space):
+    floor1 = pymunk.Body(body_type = pymunk.Body.STATIC)
     pymunk.Body()
-    shape = pymunk.Segment(floor, (0, 500), (800, 500), 10)
-    space.add(floor, shape)
+    shape1 = pymunk.Segment(floor1, (0, 800), (800, 800), 10)
+    shape1.friction = 1.00
+
+    floor2 = pymunk.Body(body_type = pymunk.Body.STATIC)
+    pymunk.Body()
+    shape2 = pymunk.Segment(floor2, (0, 0), (800, 0), 10)
+    shape2.friction = 1.00
+
+    floor3 = pymunk.Body(body_type = pymunk.Body.STATIC)
+    pymunk.Body()
+    shape3 = pymunk.Segment(floor3, (0, 0), (0, 800), 10)
+    shape3.friction = 1.00
+
+    floor4 = pymunk.Body(body_type = pymunk.Body.STATIC)
+    pymunk.Body()
+    shape4 = pymunk.Segment(floor4, (800, 0), (800, 800), 10)
+    shape4.friction = 1.00
+    space.add(floor1, shape1, floor2, shape2, floor3, shape3, floor4, shape4)
 
 
 def addObjects(space):
     person = human(space, (400, 300))
-    addFloor(space)
+    addBoundaries(space)
     return person
 
 def start():
     pygame.init()
-    screen = pygame.display.set_mode((800, 600))
+    screen = pygame.display.set_mode((800, 800))
     clock = pygame.time.Clock()
 
     space = pymunk.Space()
@@ -36,11 +52,11 @@ def start():
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_UP:
-                    person.muscles[0].rate = -3
-                    person.muscles[1].rate = 3
+                    person.muscles[0].rate = -2
+                    person.muscles[1].rate = 2
                 elif event.key == pygame.K_DOWN:
-                    person.muscles[0].rate = 3
-                    person.muscles[1].rate = -3
+                    person.muscles[0].rate = 2
+                    person.muscles[1].rate = -2
 
         ## draw
         screen.fill((200, 200, 200))
