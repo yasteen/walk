@@ -11,8 +11,13 @@ with open('neat/config.json', 'r') as f:
     config = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
 
 
-inputs = 7
-outputs = 6
+inputs = 0
+outputs = 0
+
+def init(num_inputs : int, num_outputs : int):
+    global inputs, outputs
+    inputs = num_inputs
+    outputs = num_outputs
 
 class Generation(object):
     def __init__(self):
@@ -27,8 +32,19 @@ class Generation(object):
     def createGeneration(self):
         for i in range(config.population):
             self.addToSpecies(Individual.basicIndividual(self))
-            ## TODO: Initialize run ##
-    
+            self.currentFrame = 0
+            species = self.species[self.currentSpecies]
+            individual = species.individuals[self.currentIndividual]
+            individual.network = Network(individual)
+            self.evaluateCurrent()
+            
+     
+    def evaluateCurrent(self, inputs : List[float]):
+        species = self.species[self.currentSpecies]
+        individual = species.individuals[self.currentIndividual]
+        ## TODO: write code to handle output controls to game ##
+        return individual.network.evaluate(inputs)
+
     def newGeneration(self):
         self.cullSpecies(False)
         self.rankGlobally()
@@ -49,13 +65,7 @@ class Generation(object):
             for child in children: self.addToSpecies(child)
             self.gen = self.gen + 1
             ## TODO: Save to file ##
-        
-    def evaluateCurrent(self):
-        species = self.species[self.currentSpecies]
-        individual = species.individuals[self.currentIndividual]
-        inputs = [] ## TODO: get inputs from game ##
-        ## TODO: write code to handle output controls to game ##
-
+       
     def nextIndividual(self):
         self.currentIndividual = self.currentIndividual + 1
         if self.currentIndividual >= len(self.species[self.currentSpecies].individuals):
@@ -382,7 +392,7 @@ class Network():
                 if gene.into not in self.neurons:
                     self.neurons[gene.into] = Neuron()
     
-    def evaluate(self, inputs):
+    def evaluate(self, inputs : List[int]):
         for i in range(inputs):
             self.neurons[i].value = normalize(inputs[i])
         
