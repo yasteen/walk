@@ -1,8 +1,9 @@
 import pymunk
 from model import Creature
+from typing import Dict, Tuple, Callable
 
 
-def human(space, position):
+def human(space : pymunk.Space, position : Tuple[int, int]) -> Creature:
     size = (40, 100)
     person = Creature(40, size, position)
     armsize = (16, 80)
@@ -25,3 +26,8 @@ def human(space, position):
     headPivot = pymunk.PivotJoint(person.body, head, (position[0], position[1] - size[1] / 2))
     space.add(head, headShape, headPivot)
     return person
+    
+
+    ## DICTIONARY ##
+
+creatures : Dict[str, Callable[[pymunk.Space, Tuple[int, int]], Creature]] = {"human" : human}
