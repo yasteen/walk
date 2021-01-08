@@ -11,19 +11,19 @@ with open('neat/config.json', 'r') as f:
     config = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
 
 
-inputs = 0
-outputs = 0
+num_inputs = 0
+num_outputs = 0
 
-def init(num_inputs : int, num_outputs : int):
-    global inputs, outputs
-    inputs = num_inputs
-    outputs = num_outputs
+def init(number_inputs : int, number_outputs : int):
+    global num_inputs, num_outputs
+    num_inputs = number_inputs
+    num_outputs = number_outputs
 
 class Generation(object):
     def __init__(self):
         self.species : List[Species] = []
         self.gen : int = 0
-        self.innovation : int = outputs
+        self.innovation : int = num_outputs
         self.currentSpecies : int = 0
         self.currentIndividual : int = 0
         self.currentFrame : int = 0
@@ -36,10 +36,8 @@ class Generation(object):
             species = self.species[self.currentSpecies]
             individual = species.individuals[self.currentIndividual]
             individual.network = Network(individual)
-            self.evaluateCurrent()
             
-     
-    def evaluateCurrent(self, inputs : List[float]):
+    def evaluateCurrent(self, inputs : List[float]) -> List[float]:
         species = self.species[self.currentSpecies]
         individual = species.individuals[self.currentIndividual]
         ## TODO: write code to handle output controls to game ##
@@ -66,6 +64,14 @@ class Generation(object):
             self.gen = self.gen + 1
             ## TODO: Save to file ##
        
+    def loadGeneration(self, path : str):
+        with open(path, 'r') as f:
+            self = json.load(f, object_hook=lambda d : SimpleNamespace(**d))
+
+    def saveGeneration(self, path : str):
+        with open(path , 'w') as f:
+            f.write(json.dumps(self.__dict___))
+
     def nextIndividual(self):
         self.currentIndividual = self.currentIndividual + 1
         if self.currentIndividual >= len(self.species[self.currentSpecies].individuals):
@@ -183,7 +189,7 @@ class Individual:
     @staticmethod
     def basicIndividual(generation: Generation):
         individual = Individual()
-        individual.maxNeuron = inputs
+        individual.maxNeuron = num_inputs
         individual.mutate(generation)
         return individual
     
@@ -200,21 +206,21 @@ class Individual:
     def randomNeuron(self, notInput):
         neuronBools = {}
         if not notInput:
-            for i in range(inputs):
+            for i in range(num_inputs):
                 neuronBools[i] = True
-        for i in range(outputs):
+        for i in range(num_outputs):
             neuronBools[config.max_nodes + i] = True
         for gene in self.genes:
             if not notInput:
                 neuronBools[gene.into] = True
                 neuronBools[gene.out] = True
             else:
-                if gene.into > inputs:
+                if gene.into > num_inputs:
                     neuronBools[gene.into] = True
                     neuronBools[gene.out] = True
         count = sum(map((True).__eq__, neuronBools.values()))
-        if count == 1 : n = 0
-        n = random.randint(0, count - 1)
+        if count < 1 : n = 0
+        else: n = random.randint(0, count - 1)
         for key in neuronBools:
             if n == 0: return key
             n = n - 1
@@ -239,7 +245,7 @@ class Individual:
         newLinkGene = Gene()
         newLinkGene.into = n1
         newLinkGene.out = n2
-        if forceBias: newLinkGene.into = inputs
+        if forceBias: newLinkGene.into = num_inputs
         if self.containsLink(newLinkGene): return
         newLinkGene.innovation = generation.newInnovation()
         newLinkGene.weight = random.random() * 4 - 2
@@ -378,9 +384,9 @@ class Neuron():
 class Network():
     def __init__(self, individual: Individual):
         self.neurons : Dict[Neuron] = {}
-        for i in range(inputs):
+        for i in range(num_inputs):
             self.neurons[i] = Neuron()
-        for i in range(outputs):
+        for i in range(num_outputs):
             self.neurons[config.max_nodes + i] = Neuron()
         individual.genes = sorted(individual.genes, key = lambda x : x.out)
         for gene in individual.genes:
@@ -392,34 +398,38 @@ class Network():
                 if gene.into not in self.neurons:
                     self.neurons[gene.into] = Neuron()
     
-    def evaluate(self, inputs : List[int]):
-        for i in range(inputs):
+    def evaluate(self, inputs : List[float]) -> List[float]:
+        for i in range(num_inputs):
             self.neurons[i].value = normalize(inputs[i])
         
-        for neuron in self.neurons:
+        for i in self.neurons:
             sum = 0
-            for incomingGene in neuron.incoming:
-                incomingNeuron = self.neurons[incomingGene.into]
+            for incomingGene in self.neurons[i].incoming:
+                incomingNeuron : Neuron = self.neurons[incomingGene.into]
                 sum = sum + incomingGene.weight * incomingNeuron.value
-            if len(neuron.incoming) > 0:
-                neuron.value = sigmoid(sum)
+            if len(self.neurons[i].incoming) > 0:
+                self.neurons[i].value = sigmoid(sum)
         outputs = []
-        for i in range(outputs):
+        for i in range(num_outputs):
             outputs.append(self.neurons[config.max_nodes + i].value > 0)
         return outputs
 
 
 def normalize(x):
-    return (x % math.pi) / math.pi - math.pi / 2
+    return (x % math.pi) / math.pi * 2 - 1
 
 def sigmoid(x):
     return 2 / (1 + math.exp(-4.9 * x)) - 1
 
 
-if __name__ == "__main__":
+def run():
     g = Generation()
+    init(6,6)
     g.createGeneration()
     s = g.species[g.currentSpecies]
     i = s.individuals[g.currentIndividual]
     i.network = Network(i)
-    g.evaluateCurrent()
+    return g, s, i
+
+if __name__ == "__main__":
+    run()

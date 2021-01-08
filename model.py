@@ -34,11 +34,11 @@ class Creature(Part):
     def __init__(self, mass: int, size: Tuple[int, int], position: Tuple[int, int]):
         super().__init__(mass, size)
         self.body.position = position
-        self.pivots = []
-        self.muscles = []
+        self.pivots : List[pymunk.constraints.PivotJoint] = []
+        self.muscles : List[pymunk.constraints.SimpleMotor] = []
         self.creature = self
 
-    def create(self, space: pymunk.space):
+    def create(self, space: pymunk.Space):
         Creature.__create(self.limbs, space, True)
         space.add(self.body, self.shape)
         Creature.__create(self.limbs, space, False)
@@ -47,12 +47,14 @@ class Creature(Part):
 
         
     @staticmethod
-    def __create(listoflimbs: List[Limb], space: pymunk.space, isUnderBody: bool):
+    def __create(listoflimbs: List[Limb], space: pymunk.Space, isUnderBody: bool):
         for limb in listoflimbs:
             if limb.isUnderBody == isUnderBody:
                 space.add(limb.body, limb.shape)
-                print("added")
             Creature.__create(limb.limbs, space, isUnderBody)
+
+    def getInputs(self):
+        return list(map(lambda pivot : pivot._a._get_angle() - pivot._b._get_angle(), self.pivots))
 
 
 class Limb(Part):

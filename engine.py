@@ -2,8 +2,11 @@ import pygame
 import pymunk
 import pymunk.pygame_util
 import sys
-from creatures import human
+import creatures
+import neat.NEAT as neat
 
+path = "./neat/data/"
+speed = 1
 
 def addBoundaries(space):
     floor1 = pymunk.Body(body_type = pymunk.Body.STATIC)
@@ -27,13 +30,7 @@ def addBoundaries(space):
     shape4.friction = 1.00
     space.add(floor1, shape1, floor2, shape2, floor3, shape3, floor4, shape4)
 
-
-def addObjects(space):
-    person = human(space, (400, 300))
-    addBoundaries(space)
-    return person
-
-def start():
+def startVisual():
     pygame.init()
     screen = pygame.display.set_mode((800, 800))
     clock = pygame.time.Clock()
@@ -43,7 +40,8 @@ def start():
 
     draw_options = pymunk.pygame_util.DrawOptions(screen)
 
-    person = addObjects(space)
+    addBoundaries(space)
+    person = creatures.human(space, (400, 400))
 
     while True:
         for event in pygame.event.get():
@@ -67,4 +65,51 @@ def start():
         pygame.display.update()
         clock.tick(60)          ## fps
 
-if __name__ == '__main__': start()
+def startNEAT(creature : str, completedGen : int, isDisplayOn : bool):
+    space = pymunk.Space()
+    space.gravity = (0, 500)
+
+    screen = None
+    clock = None
+    draw_options = None
+    if isDisplayOn:                         ## DISPLAY ON
+        pygame.init()
+        screen = pygame.display.set_mode((800, 800))
+        clock = pygame.time.Clock()
+        draw_options = pymunk.pygame_util.DrawOptions(screen)
+
+    addBoundaries(space)
+
+    person = creatures.creatures[creature](space, (400, 400))
+    neat.init(len(person.getInputs()), len(person.getInputs()))
+    gen : neat.Generation = neat.Generation()
+    if completedGen == 0: gen.createGeneration()
+    else : gen.loadGeneration(path + creature + "/" + str(completedGen) + ".neat")
+
+
+    while True:
+        if isDisplayOn:                     ## DISPLAY ON
+            screen.fill((200, 200, 200))
+            space.debug_draw(draw_options)
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+        neat.Generation
+        inputs = person.getInputs()
+        outputs = []
+        neat.init(len(inputs), len(inputs))
+        if gen.currentFrame % 5 == 0: outputs = gen.evaluateCurrent(inputs)
+        for i in range(len(outputs)):
+            output = outputs[i]
+            if output < -0.5: person.muscles[i].rate = -speed
+            elif output > 0.5: person.muscles[i].rate = speed
+            else: person.muscles[i].rate = 0
+        space.step(1 / 40)
+        if isDisplayOn:                     ## DISPLAY ON
+            pygame.display.update()
+            clock.tick(60)
+
+
+
+if __name__ == '__main__': startVisual()
