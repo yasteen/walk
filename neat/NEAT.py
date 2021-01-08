@@ -6,6 +6,8 @@ from types import SimpleNamespace
 from typing import List
 from typing import Dict
 
+from engine import path
+
 
 with open('neat/config.json', 'r') as f:
     config = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
@@ -31,10 +33,7 @@ class Generation(object):
 
     def createGeneration(self):
         for i in range(config.population):
-            self.addToSpecies(Individual.basicIndividual(self))
-            self.currentFrame = 0
-            species = self.species[self.currentSpecies]
-            individual = species.individuals[self.currentIndividual]
+            individual = self.addToSpecies(Individual.basicIndividual(self))
             individual.network = Network(individual)
             
     def evaluateCurrent(self, inputs : List[float]) -> List[float]:
@@ -43,7 +42,7 @@ class Generation(object):
         ## TODO: write code to handle output controls to game ##
         return individual.network.evaluate(inputs)
 
-    def newGeneration(self):
+    def nextGeneration(self):
         self.cullSpecies(False)
         self.rankGlobally()
         self.removeStaleSpecies()
@@ -68,8 +67,8 @@ class Generation(object):
         with open(path, 'r') as f:
             self = json.load(f, object_hook=lambda d : SimpleNamespace(**d))
 
-    def saveGeneration(self, path : str):
-        with open(path , 'w') as f:
+    def saveGeneration(self, creatureName : str):
+        with open(path + creatureName + "/" + str(self.gen) + ".neat", 'w') as f:
             f.write(json.dumps(self.__dict___))
 
     def nextIndividual(self):
@@ -78,8 +77,9 @@ class Generation(object):
             self.currentIndividual = 0
             self.currentSpecies = self.currentSpecies + 1
             if self.currentSpecies >= len(self.species):
-                self.newGeneration()
-                self.currentSpecies = 1
+                self.nextGeneration()
+                self.saveGeneration()
+                self.currentSpecies = 0
 
     def newInnovation(self):
         self.innovation = self.innovation + 1
@@ -105,7 +105,7 @@ class Generation(object):
         individual = species.individuals[self.currentIndividual]
         return individual.fitness != 0
 
-    def addToSpecies(self, individualChild):
+    def addToSpecies(self, individualChild : Individual) -> Individual:
         foundSpecies = False
         for species in self.species:
             if species.individuals == [] or (not foundSpecies and Individual.sameSpecies(individualChild, species.individuals[0])):
@@ -115,6 +115,7 @@ class Generation(object):
             childSpecies = Species()
             childSpecies.individuals.append(individualChild)
             self.species.append(childSpecies)
+        return individualChild
 
     def cullSpecies(self, cutToOne : bool):
         for species in self.species:
@@ -424,7 +425,7 @@ def sigmoid(x):
 
 def run():
     g = Generation()
-    init(6,6)
+    init(7,7)
     g.createGeneration()
     s = g.species[g.currentSpecies]
     i = s.individuals[g.currentIndividual]
