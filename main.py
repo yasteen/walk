@@ -3,7 +3,7 @@ import tkinter.messagebox as tkm
 import os
 import creatures
 import engine
-from engine import path
+from neat.NEAT import path
 
 creatureFiles = [f for f in os.listdir(path) if not os.path.isfile(os.path.join(path, f))]
 
@@ -30,8 +30,9 @@ def addCreatureCallback(root : tk.Tk, name : str):
     root.destroy()
     init()
 
-def startCallback(name : str, top : int):
-    engine.startNEAT(name, top, True)
+def startCallback(root : tk.Tk, name : str, top : int, showGUI : bool):
+    root.destroy()
+    engine.startNEAT(name, top, showGUI)
 
 
 ## INIT WINDOW FUNCTIONS ##
@@ -42,12 +43,15 @@ def selectInit(root : tk.Tk, name : str):
     saveFiles = [f for f in os.listdir(path + name) if
         os.path.isfile(os.path.join(path + name, f)) and
         f.endswith(".neat") and f[0:-5].isdigit()]
-    saveFiles = sorted(saveFiles, key = lambda x : x[0:-5])
+    saveFiles = sorted(saveFiles, key = lambda x : int(x[0:-5]))
     top = 0 if saveFiles == [] else saveFiles[-1][0:-5]
     highGen = tk.Label(root, text="Highest generation completed: " + str(top))
-    start = tk.Button(root, text="Start learning", command = lambda : startCallback(name, top))
+    showGUIVar = tk.BooleanVar()
+    showGUI = tk.Checkbutton(root, text="Show GUI", variable=showGUIVar)
+    start = tk.Button(root, text="Start learning", command = lambda : startCallback(root, name, top, showGUIVar.get()))
 
     highGen.pack()
+    showGUI.pack()
     start.pack()
 
     tk.mainloop()

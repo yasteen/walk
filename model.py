@@ -77,7 +77,7 @@ class Creature(Part):
             Creature.__remove(limb, space)
 
     def getInputs(self):
-        return list(map(lambda pivot : pivot._a._get_angle() - pivot._b._get_angle(), self.pivots))
+        return [self.body._get_angle()] + list(map(lambda pivot : pivot._a._get_angle() - pivot._b._get_angle(), self.pivots))
 
 
 class Limb(Part):

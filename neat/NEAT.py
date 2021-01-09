@@ -6,8 +6,7 @@ from types import SimpleNamespace
 from typing import List
 from typing import Dict
 
-from engine import path
-
+path = 'neat/data/'
 
 with open('neat/config.json', 'r') as f:
     config = json.load(f, object_hook=lambda d: SimpleNamespace(**d))
@@ -30,16 +29,20 @@ class Generation(object):
         self.currentIndividual : int = 0
         self.currentFrame : int = 0
         self.maxFitness : int = 0
+        self.name : str = "no_name"
 
-    def createGeneration(self):
+
+    def createGeneration(self, name):
+        self.name = name
         for i in range(config.population):
             individual = self.addToSpecies(Individual.basicIndividual(self))
-            individual.network = Network(individual)
+            individual.network = Network(individual)        ## Not necessary
             
     def evaluateCurrent(self, inputs : List[float]) -> List[float]:
         species = self.species[self.currentSpecies]
         individual = species.individuals[self.currentIndividual]
         ## TODO: write code to handle output controls to game ##
+        individual.network = Network(individual)
         return individual.network.evaluate(inputs)
 
     def nextGeneration(self):
@@ -51,25 +54,49 @@ class Generation(object):
         self.removeWeakSpecies()
         sum = self.totalAverageFitness()
         children = []
-        for species in self.species():
+        for species in self.species:
             breed = math.floor(species.averageFitness / sum * config.population) - 1
             for i in range(breed):
-                children.append(species.breedChildren())
+                children.append(species.breedChild(self))
             self.cullSpecies(True)
-            while len(children) + self.species < config.population:
+            while len(children) + len(self.species) < config.population:
                 species = self.species[random.randint(0, len(self.species)  - 1)]
-                children.append(species.breedChild())
+                children.append(species.breedChild(self))
             for child in children: self.addToSpecies(child)
-            self.gen = self.gen + 1
-            ## TODO: Save to file ##
-       
-    def loadGeneration(self, path : str):
+        self.gen = self.gen + 1
+        self.saveGeneration(self.name)
+        self.maxFitness = 0
+    
+    @staticmethod
+    def loadGeneration(path : str) -> Generation:
         with open(path, 'r') as f:
-            self = json.load(f, object_hook=lambda d : SimpleNamespace(**d))
+            dict = json.load(f)
+        return Generation.__hook(dict)
+
+    @staticmethod
+    def __hook(dict) -> Generation:
+        g = Generation()
+        g.__dict__ = dict
+        for i in range(len(g.species)):
+            act_species = Species()
+            act_species.__dict__ = g.species[i]
+            g.species[i] = act_species
+            for j in range(len(act_species.individuals)):
+                act_individual = Individual()
+                act_individual.__dict__ = act_species.individuals[j]
+                act_species.individuals[j] = act_individual
+                for k in range(len(act_individual.genes)):
+                    act_gene = Gene()
+                    act_gene.__dict__ = act_individual.genes[k]
+                    act_individual.genes[k] = act_gene
+        return g
+            
 
     def saveGeneration(self, creatureName : str):
-        with open(path + creatureName + "/" + str(self.gen) + ".neat", 'w') as f:
-            f.write(json.dumps(self.__dict___))
+        genNum = self.gen
+        with open(path + creatureName + "/" + str(genNum) + ".neat", 'w') as f:
+            f.write(json.dumps(self, default=lambda o: o.__dict__))
+            print("Saved generation " + str(self.gen))
 
     def nextIndividual(self):
         self.currentIndividual = self.currentIndividual + 1
@@ -77,9 +104,8 @@ class Generation(object):
             self.currentIndividual = 0
             self.currentSpecies = self.currentSpecies + 1
             if self.currentSpecies >= len(self.species):
-                self.nextGeneration()
-                self.saveGeneration()
                 self.currentSpecies = 0
+                self.nextGeneration()
 
     def newInnovation(self):
         self.innovation = self.innovation + 1
@@ -141,7 +167,7 @@ class Generation(object):
         sum = self.totalAverageFitness()
         for species in self.species:
             breed = math.floor(species.averageFitness / sum * config.population)
-            if breed >= 1: survived.insert(species)
+            if breed >= 1: survived.append(species)
         self.species = survived
 
 
@@ -158,16 +184,16 @@ class Species(object):
             total = total + individual.globalRank
         self.averageFitness = total / len(self.individuals)
 
-    def breedChild(self):
+    def breedChild(self, generation : Generation):
         child = None
-        if random.random < config.chance.crossover_chance:
+        if random.random() < config.chance.crossover_chance:
             i1 = self.individuals[random.randint(0, len(self.individuals) - 1)]
             i2 = self.individuals[random.randint(0, len(self.individuals) - 1)]
             child = Individual.crossover(i1, i2)
         else:
             g = self.individuals[random.randint(0, len(self.individuals) - 1)]
             child = g.clone()
-        child.mutate()
+        child.mutate(generation)
         return child
 
 
@@ -312,14 +338,15 @@ class Individual:
             i1 = i2
             i2 = temp
         child = Individual()
-        innovations2 = []
+        innovations2 = {}
         for gene in i2.genes:
             innovations2[gene.innovation] = gene
         for gene1 in i1.genes:
-            gene2 : Gene = innovations2[gene1.innovation]
+            if gene1.innovation in innovations2: gene2 : Gene = innovations2[gene1.innovation]
+            else: gene2 = None
             if gene2 is not None and random.random() > 0.5 and gene2.enabled:
-                child.genes.insert(gene2.clone())
-            else: child.genes.insert(gene1.clone())
+                child.genes.append(gene2.clone())
+            else: child.genes.append(gene1.clone())
         child.maxNeuron = max(i1.maxNeuron, i2.maxNeuron)
         for mutation in i1.mutationRates:
             child.mutationRates[mutation] = i1.mutationRates[mutation]
@@ -384,7 +411,7 @@ class Neuron():
 
 class Network():
     def __init__(self, individual: Individual):
-        self.neurons : Dict[Neuron] = {}
+        self.neurons : Dict[int, Neuron] = {}
         for i in range(num_inputs):
             self.neurons[i] = Neuron()
         for i in range(num_outputs):
@@ -412,7 +439,7 @@ class Network():
                 self.neurons[i].value = sigmoid(sum)
         outputs = []
         for i in range(num_outputs):
-            outputs.append(self.neurons[config.max_nodes + i].value > 0)
+            outputs.append(self.neurons[config.max_nodes + i].value)
         return outputs
 
 
@@ -426,7 +453,7 @@ def sigmoid(x):
 def run():
     g = Generation()
     init(7,7)
-    g.createGeneration()
+    g.createGeneration("human")
     s = g.species[g.currentSpecies]
     i = s.individuals[g.currentIndividual]
     i.network = Network(i)

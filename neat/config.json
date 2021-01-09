@@ -1,5 +1,5 @@
 {
-    "population": 300,
+    "population": 75,
     "stale_species": 15,
     "delta":
     {
@@ -20,5 +20,5 @@
     },
     "stepsize": 0.1,
     "timeout": 100,
-    "max_nodes": 10000
+    "max_nodes": 100000
 }
