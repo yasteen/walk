@@ -15,10 +15,12 @@ with open('neat/config.json', 'r') as f:
 num_inputs = 0
 num_outputs = 0
 
+
 def init(number_inputs : int, number_outputs : int):
     global num_inputs, num_outputs
     num_inputs = number_inputs
     num_outputs = number_outputs
+
 
 class Generation(object):
     def __init__(self):
@@ -37,13 +39,14 @@ class Generation(object):
         for i in range(config.population):
             individual = self.addToSpecies(Individual.basicIndividual(self))
             individual.network = Network(individual)        ## Not necessary
-            
+
+
     def evaluateCurrent(self, inputs : List[float]) -> List[float]:
         species = self.species[self.currentSpecies]
         individual = species.individuals[self.currentIndividual]
-        ## TODO: write code to handle output controls to game ##
         individual.network = Network(individual)
         return individual.network.evaluate(inputs)
+
 
     def nextGeneration(self):
         self.cullSpecies(False)
@@ -67,11 +70,13 @@ class Generation(object):
         self.saveGeneration(self.name)
         self.maxFitness = 0
     
+
     @staticmethod
     def loadGeneration(path : str) -> Generation:
         with open(path, 'r') as f:
             dict = json.load(f)
         return Generation.__hook(dict)
+
 
     @staticmethod
     def __hook(dict) -> Generation:
@@ -94,9 +99,13 @@ class Generation(object):
 
     def saveGeneration(self, creatureName : str):
         genNum = self.gen
+        for species in self.species:
+            for indiv in species.individuals:
+                indiv.network = None
         with open(path + creatureName + "/" + str(genNum) + ".neat", 'w') as f:
             f.write(json.dumps(self, default=lambda o: o.__dict__))
             print("Saved generation " + str(self.gen))
+
 
     def nextIndividual(self):
         self.currentIndividual = self.currentIndividual + 1
@@ -107,9 +116,11 @@ class Generation(object):
                 self.currentSpecies = 0
                 self.nextGeneration()
 
+
     def newInnovation(self):
         self.innovation = self.innovation + 1
         return self.innovation
+
 
     def rankGlobally(self):
         globl : List[Individual] = []
@@ -120,16 +131,19 @@ class Generation(object):
         for i in range(len(globl)):
             globl[i].globalRank = i
 
+
     def totalAverageFitness(self):
         total = 0
         for species in self.species:
             total = total + species.averageFitness
         return total
 
+
     def fitnessAlreadyMeasured(self):
         species = self.species[self.currentSpecies]
         individual = species.individuals[self.currentIndividual]
         return individual.fitness != 0
+
 
     def addToSpecies(self, individualChild : Individual) -> Individual:
         foundSpecies = False
@@ -143,12 +157,14 @@ class Generation(object):
             self.species.append(childSpecies)
         return individualChild
 
+
     def cullSpecies(self, cutToOne : bool):
         for species in self.species:
             species.individuals = sorted(species.individuals, key = lambda x : x.fitness)
             remaining = math.ceil(len(species.individuals) / 2)
             if cutToOne : remaining = 1
-            while len(species.individuals) > remaining: species.individuals.pop()
+            while len(species.individuals) > remaining: species.individuals.pop(0)
+
 
     def removeStaleSpecies(self):
         survived = []
@@ -161,6 +177,7 @@ class Generation(object):
             if species.staleness < config.stale_species or species.topFitness >= self.maxFitness:
                 survived.append(species)
         self.species = survived
+
 
     def removeWeakSpecies(self):
         survived = []
@@ -178,11 +195,13 @@ class Species(object):
         self.individuals : List[Individual] = []
         self.averageFitness : float = 0.0
     
+
     def calculateAverageFitness(self):
         total = 0
         for individual in self.individuals:
             total = total + individual.globalRank
         self.averageFitness = total / len(self.individuals)
+
 
     def breedChild(self, generation : Generation):
         child = None
@@ -213,6 +232,7 @@ class Individual:
         self.mutationRates["disable"]       = config.chance.disable_mutation_chance
         self.mutationRates["step"]          = config.stepsize
     
+
     @staticmethod
     def basicIndividual(generation: Generation):
         individual = Individual()
@@ -220,6 +240,7 @@ class Individual:
         individual.mutate(generation)
         return individual
     
+
     def clone(self) -> Individual:
         copy = Individual()
         copy.genes = self.genes
@@ -229,6 +250,7 @@ class Individual:
         copy.globalRank = self.globalRank
         copy.mutationRates = self.mutationRates
         return copy
+
 
     def randomNeuron(self, notInput):
         neuronBools = {}
@@ -253,11 +275,13 @@ class Individual:
             n = n - 1
         return 0
     
+
     def containsLink(self, linkGene):
         for gene in self.genes:
             if gene.into == linkGene.into and gene.out == linkGene.out:
                 return True
     
+
     def pointMutate(self):
         step = self.mutationRates["step"]
         for gene in self.genes:
@@ -266,6 +290,7 @@ class Individual:
             else:
                 gene.weight = random.random() * 4 - 2
     
+
     def linkMutate(self, forceBias, generation : Generation):
         n1 = self.randomNeuron(False)
         n2 = self.randomNeuron(True)
@@ -277,6 +302,7 @@ class Individual:
         newLinkGene.innovation = generation.newInnovation()
         newLinkGene.weight = random.random() * 4 - 2
         self.genes.append(newLinkGene)
+
 
     def nodeMutate(self, generation : Generation):
         if len(self.genes) == 0: return
@@ -296,6 +322,7 @@ class Individual:
         gene2.enabled = True
         self.genes.append(gene2)
 
+
     def enableDisableMutate(self, enable : bool):
         geneCandidates = []
         for gene in self.genes:
@@ -304,6 +331,7 @@ class Individual:
         if len(geneCandidates) == 0: return
         gene : Gene = geneCandidates[random.randint(0, len(geneCandidates) - 1)]
         gene.enabled = not gene.enabled
+
 
     def mutate(self, generation : Generation):
         for mutation in self.mutationRates:
@@ -331,6 +359,7 @@ class Individual:
             if random.random() < p: self.enableDisableMutate(False)
             p = p - 1
     
+
     @staticmethod
     def crossover(i1 : Individual, i2 : Individual):
         if i2.fitness > i1.fitness:
@@ -352,6 +381,7 @@ class Individual:
             child.mutationRates[mutation] = i1.mutationRates[mutation]
         return child
 
+
     @staticmethod
     def disjoint(i1 : Individual, i2 : Individual):
         inn1 = {}
@@ -367,6 +397,7 @@ class Individual:
             if gene.innovation not in inn1: disjointGenes = disjointGenes + 1
         return disjointGenes / max(len(i1.genes), len(i2.genes))
 
+
     @staticmethod
     def weights(i1 : Individual, i2 : Individual):
         inn2 = {}
@@ -381,11 +412,13 @@ class Individual:
                 coincident = coincident = 1
         return sum / coincident if coincident != 0 else -1
 
+
     @staticmethod
     def sameSpecies(i1 , i2):
         dd = config.delta.delta_disjoint * Individual.disjoint(i1, i2)
         dw = config.delta.delta_weights * Individual.weights(i1, i2)
         return dw + dd < config.delta.delta_threshold and dw + dd >= 0
+
 
 class Gene():
     def __init__(self):
@@ -394,6 +427,7 @@ class Gene():
         self.weight : float = 0.0
         self.enabled : bool = True
         self.innovation : int = 0
+
 
     def clone(self):
         copy = Gene()
@@ -404,10 +438,12 @@ class Gene():
         copy.innovation = self.innovation
         return copy
 
+
 class Neuron():
     def __init__(self):
         self.incoming : List[Gene] = []
         self.value : float = 0.0
+
 
 class Network():
     def __init__(self, individual: Individual):
@@ -426,6 +462,7 @@ class Network():
                 if gene.into not in self.neurons:
                     self.neurons[gene.into] = Neuron()
     
+
     def evaluate(self, inputs : List[float]) -> List[float]:
         for i in range(num_inputs):
             self.neurons[i].value = normalize(inputs[i])
@@ -446,6 +483,7 @@ class Network():
 def normalize(x):
     return (x % math.pi) / math.pi * 2 - 1
 
+
 def sigmoid(x):
     return 2 / (1 + math.exp(-4.9 * x)) - 1
 
@@ -458,6 +496,7 @@ def run():
     i = s.individuals[g.currentIndividual]
     i.network = Network(i)
     return g, s, i
+
 
 if __name__ == "__main__":
     run()
