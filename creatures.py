@@ -38,8 +38,6 @@ def dog(space: pymunk.Space, position : Tuple[int, int]) -> Creature:
     lleg3 = leg3.addLimb(10, legsize, (0, -legsize[1] / 2), (0, legsize[1] / 2), True, True, "rectangle")
     lleg4 = leg4.addLimb(10, legsize, (0, -legsize[1] / 2), (0, legsize[1] / 2), False, True, "rectangle")
 
-
-
     headRadius = 30
     head = dog.addLimb(12, (0, headRadius), (0, 0), (size[0] / 2, -size[1] / 2), False, False, "circle")
 
@@ -47,6 +45,17 @@ def dog(space: pymunk.Space, position : Tuple[int, int]) -> Creature:
     return dog
 
 
+def test(space: pymunk.Space, position : Tuple[int, int]) -> Creature:
+    radius = (0, 20)
+    body = Creature(40, radius, position, "circle")
+    legsize = (5, 50)
+    leg1 = body.addLimb(10, legsize, (0, -legsize[1] / 2), (0, 0), True, True, "rectangle")
+    leg2 = body.addLimb(10, legsize, (0, -legsize[1] / 2), (0, 0), False, True, "rectangle")
+
+    body.create(space)
+    return body
+    
+
     ## DICTIONARY ##
 
-creatures : Dict[str, Callable[[pymunk.Space, Tuple[int, int]], Creature]] = {"human" : human, "dog" : dog}
+creatures : Dict[str, Callable[[pymunk.Space, Tuple[int, int]], Creature]] = {"human" : human, "dog" : dog, "test" : test}

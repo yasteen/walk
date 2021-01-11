@@ -179,4 +179,4 @@ def reset(space : pymunk.Space, creature : Creature, generation: neat.Generation
 
     
 
-if __name__ == '__main__': startNEAT("human", 0, True)
+if __name__ == '__main__': startNEAT("test", 0, False)
