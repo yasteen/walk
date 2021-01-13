@@ -5,6 +5,7 @@ import json
 from types import SimpleNamespace
 from typing import List
 from typing import Dict
+from typing import Tuple
 
 path = 'neat/data/'
 
@@ -49,6 +50,8 @@ class Generation(object):
 
 
     def nextGeneration(self):
+        self.gen = self.gen + 1
+        self.saveGeneration(self.name)
         self.cullSpecies(False)
         self.rankGlobally()
         self.removeStaleSpecies()
@@ -61,14 +64,11 @@ class Generation(object):
             breed = math.floor(species.averageFitness / sum * config.population) - 1
             for i in range(breed):
                 children.append(species.breedChild(self))
-            self.cullSpecies(True)
-            while len(children) + len(self.species) < config.population:
-                species = self.species[random.randint(0, len(self.species)  - 1)]
-                children.append(species.breedChild(self))
-            for child in children: self.addToSpecies(child)
-        self.gen = self.gen + 1
-        self.saveGeneration(self.name)
-        self.maxFitness = 0
+        self.cullSpecies(True)
+        while len(children) + len(self.species) < config.population:
+            species = self.species[random.randint(0, len(self.species)  - 1)]
+            children.append(species.breedChild(self))
+        for child in children: self.addToSpecies(child)
     
 
     @staticmethod
@@ -169,7 +169,7 @@ class Generation(object):
     def removeStaleSpecies(self):
         survived = []
         for species in self.species:
-            species.individuals = sorted(species.individuals, key = lambda x : x.fitness)
+            species.individuals = sorted(species.individuals, key = lambda x : -x.fitness)
             if species.individuals[0].fitness > species.topFitness:
                 species.topFitness = species.individuals[0].fitness
                 species.staleness = 0
@@ -187,6 +187,18 @@ class Generation(object):
             if breed >= 1: survived.append(species)
         self.species = survived
 
+
+    def getTopIndividual(self) -> Tuple(int, int):
+        top_spec = 0
+        top_ind = 0
+        top_fit = 0
+        for i in range(len(self.species)):
+            for j in range(len(self.species[i].individuals)):
+                if self.species[i].individuals[j].fitness > top_fit:
+                    top_fit = self.species[i].individuals[j].fitness
+                    top_spec = i
+                    top_ind = j
+        return (top_spec, top_ind)
 
 class Species(object):
     def __init__(self):
@@ -371,7 +383,8 @@ class Individual:
         for gene in i2.genes:
             innovations2[gene.innovation] = gene
         for gene1 in i1.genes:
-            if gene1.innovation in innovations2: gene2 : Gene = innovations2[gene1.innovation]
+            if gene1.innovation in innovations2:
+                gene2 :Gene = innovations2[gene1.innovation]
             else: gene2 = None
             if gene2 is not None and random.random() > 0.5 and gene2.enabled:
                 child.genes.append(gene2.clone())

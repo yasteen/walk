@@ -6,6 +6,8 @@ import engine
 from neat.NEAT import path
 
 creatureFiles = [f for f in os.listdir(path) if not os.path.isfile(os.path.join(path, f))]
+windowSize = (300, 300)
+
 
 ## CALLBACK FUNCTIONS ##
 
@@ -32,7 +34,8 @@ def addCreatureCallback(root : tk.Tk, name : str):
 
 def startCallback(root : tk.Tk, name : str, top : int, showGUI : bool):
     root.destroy()
-    engine.startNEAT(name, top, showGUI)
+    e = engine.Engine(name, top, showGUI)
+    e.learn_loop()
 
 
 ## INIT WINDOW FUNCTIONS ##
@@ -40,6 +43,7 @@ def startCallback(root : tk.Tk, name : str, top : int, showGUI : bool):
 def selectInit(root : tk.Tk, name : str):
     root = tk.Tk()
     root.title(name)
+    root.geometry("%dx%d+%d+%d" % (windowSize[0], windowSize[1], (root.winfo_screenwidth() - windowSize[0]) / 2, (root.winfo_screenheight() - windowSize[1]) / 2))
     saveFiles = [f for f in os.listdir(path + name) if
         os.path.isfile(os.path.join(path + name, f)) and
         f.endswith(".neat") and f[0:-5].isdigit()]
@@ -56,9 +60,11 @@ def selectInit(root : tk.Tk, name : str):
 
     tk.mainloop()
 
+
 def createInit(root):
     root = tk.Tk()
     root.title("New Creature")
+    root.geometry("%dx%d+%d+%d" % (windowSize[0], windowSize[1], (root.winfo_screenwidth() - windowSize[0]) / 2, (root.winfo_screenheight() - windowSize[1]) / 2))
     nameLabel = tk.Label(root, text="Creature name")
     name = tk.Entry(root)
     create = tk.Button(root, text="Add Creature", command = lambda : addCreatureCallback(root, name.get()))
@@ -68,11 +74,14 @@ def createInit(root):
     create.pack()
     tk.mainloop()
 
+
 def init():
     global creatureFiles
+    windowSize = (300, 300)
     creatureFiles = [f for f in os.listdir(path) if not os.path.isfile(os.path.join(path, f))]
     root = tk.Tk()
     root.title("Select Creature")
+    root.geometry("%dx%d+%d+%d" % (windowSize[0], windowSize[1], (root.winfo_screenwidth() - windowSize[0]) / 2, (root.winfo_screenheight() - windowSize[1]) / 2))
     listbox = tk.Listbox(root, selectmode=tk.SINGLE)
     for i in range(len(creatureFiles)):
         listbox.insert(i, creatureFiles[i])
