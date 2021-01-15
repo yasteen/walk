@@ -83,6 +83,7 @@ class Engine(object):
 
     def learn_loop(self):
         global floor1_1, floor1_2
+        self.gen.gen = self.gen.gen + 1
         while True:
             while self.gen.fitnessAlreadyMeasured():
                 print("Generation: " + str(self.gen.gen) +
@@ -104,9 +105,13 @@ class Engine(object):
                 self.clock.tick(60)
 
     def top_loop(self):
+        if self.gen.gen == 0 :
+            print("No generation saved.")
+            return
         top = self.gen.getTopIndividual()
         self.gen.currentSpecies = top[0]
         self.gen.currentIndividual = top[1]
+        print(self.gen.species[top[0]].individuals[top[1]].__dict__)
         while not self.die:
             self.draw()
             incrementGround()
@@ -180,5 +185,6 @@ def incrementGround():
 if __name__ == '__main__':
     # engine = Engine("human", 0, True)
     # engine.learn_loop()
-    engine = Engine("test", 24, True)
+    engine = Engine("human", 25, True)
     engine.top_loop()
+    

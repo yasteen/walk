@@ -50,8 +50,9 @@ class Generation(object):
 
 
     def nextGeneration(self):
-        self.gen = self.gen + 1
+        # save generation x
         self.saveGeneration(self.name)
+        # create generation x + 1
         self.cullSpecies(False)
         self.rankGlobally()
         self.removeStaleSpecies()
@@ -69,6 +70,7 @@ class Generation(object):
             species = self.species[random.randint(0, len(self.species)  - 1)]
             children.append(species.breedChild(self))
         for child in children: self.addToSpecies(child)
+        self.gen = self.gen + 1
     
 
     @staticmethod
