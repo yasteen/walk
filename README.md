@@ -1,4 +1,4 @@
-# walk
+# walk - IN PROGRESS
 Uses the NEAT algorithm to optimize walking behaviour on various creatures.
 
 Inspiration and source for NEAT algorithm: https://www.youtube.com/watch?v=qv6UVOQ0F44&ab_channel=SethBling
