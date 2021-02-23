@@ -1,9 +1,10 @@
 # walk - IN PROGRESS
-Uses the NEAT algorithm to optimize walking behaviour on various "creatures".
-The program simulates a physics environment with a 2D model. The creature (model)
+
+The program simulates a physics environment with a 2D model. The "creature" (model)
 has limbs that it can control. The creature dies if it touches the left wall in
 the simulation. Since the ground moves slowly to the left, the creature must learn
 how to consistently move itself away from the left wall in order to survive.
+The NEAT machine learning algorithm is used to optimize this walking behaviour.
 
 
 Inspiration and source for NEAT algorithm: https://www.youtube.com/watch?v=qv6UVOQ0F44&ab_channel=SethBling
