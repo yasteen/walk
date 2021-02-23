@@ -1,6 +1,6 @@
 # walk - IN PROGRESS
 
-The program simulates a physics environment with a 2D model. The "creature" (model)
+The program simulates a physics environment with various 2D models. A "creature" (model)
 has limbs that it can control. The creature dies if it touches the left wall in
 the simulation. Since the ground moves slowly to the left, the creature must learn
 how to consistently move itself away from the left wall in order to survive.
