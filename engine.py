@@ -1,9 +1,10 @@
-from __future__ import annotations
+from __future__ import annotations, print_function
 import pymunk
 import pymunk.pygame_util
 import pygame
 import creatures
 import neat.NEAT as neat
+import json
 
 import sys
 import time
@@ -14,7 +15,7 @@ speed = 1
 # floor
 baseGroundSpeed = 30
 groundSpeed = 30
-groundAcceleration = 0.01
+groundAcceleration = .5
 floor1_1 = None
 floor1_2 = None
 
@@ -77,6 +78,8 @@ class Engine(object):
         if self.fitness > self.gen.maxFitness : self.gen.maxFitness = self.fitness
         self.creature.remove(self.space)
         groundSpeed = baseGroundSpeed
+        floor1_1.velocity = (-groundSpeed, 0)
+        floor1_2.velocity = (-groundSpeed, 0)
         self.creature = creatures.creatures[self.creatureName](self.space, (500, windowSize[1] / 2))
         self.fitness = 0
         self.die = False
@@ -84,13 +87,16 @@ class Engine(object):
     def learn_loop(self):
         global floor1_1, floor1_2
         self.gen.gen = self.gen.gen + 1
+        self.gen.species[self.gen.currentSpecies].individuals[self.gen.currentIndividual].createNetwork()
         while True:
             while self.gen.fitnessAlreadyMeasured():
                 print("Generation: " + str(self.gen.gen) +
                         ", Individual: " + str(self.gen.currentIndividual) +
                         ", Species: " + str(self.gen.currentSpecies) +
                         ", Fitness: " + str(self.gen.species[self.gen.currentSpecies].individuals[self.gen.currentIndividual].fitness))
+                saveIndividual(self, True)
                 self.gen.nextIndividual()
+                self.gen.species[self.gen.currentSpecies].individuals[self.gen.currentIndividual].createNetwork()
 
             if self.isDisplayOn: self.draw()
 
@@ -104,22 +110,25 @@ class Engine(object):
                 pygame.display.update()
                 self.clock.tick(60)
 
-    def top_loop(self):
+    def specific_loop(self, spec, indiv):
         if self.gen.gen == 0 :
             print("No generation saved.")
             return
-        top = self.gen.getTopIndividual()
-        self.gen.currentSpecies = top[0]
-        self.gen.currentIndividual = top[1]
-        print(self.gen.species[top[0]].individuals[top[1]].__dict__)
+        self.gen.currentSpecies = spec
+        self.gen.currentIndividual = indiv
+        self.gen.species[spec].individuals[indiv].createNetwork()
+        print("Max_fitness: {}, Fitness: {}, Gen: {}, Species: {}, Indiv: {}".format(self.gen.maxFitness, self.gen.species[spec].individuals[indiv].fitness, self.gen.gen, spec, indiv))
+        saveIndividual(self, False)
         while not self.die:
-            self.draw()
+            if self.isDisplayOn: self.draw()
             incrementGround()
-            self.iterate()
+            if not self.die: self.iterate()
+            
             if self.isDisplayOn:
                 pygame.display.update()
                 self.clock.tick(60)
         time.sleep(1)
+        print("Actual Fitness: {}".format(self.fitness))
         pygame.quit()
         if __name__ == "__main__": sys.exit()
 
@@ -182,9 +191,35 @@ def incrementGround():
     if floor1_1.position.x < -500: floor1_1.position = (800 + 500, floor1_1.position.y)
     if floor1_2.position.x < -500: floor1_2.position = (800 + 500, floor1_2.position.y)
 
+
+def saveIndividual(engine: Engine, isLearn: bool):
+    """ Save individual to a file """
+    learn = "learned" if isLearn else "play"
+    with open('test/{}/{}-{}-{}-{}'.format(learn, engine.creatureName, engine.gen.gen, engine.gen.currentSpecies, engine.gen.currentIndividual), 'w') as f:
+        f.write(json.dumps(engine.gen.species[engine.gen.currentSpecies].individuals[engine.gen.currentIndividual], default=lambda o:o.__dict__, indent=4))
+
+
 if __name__ == '__main__':
-    # engine = Engine("human", 0, True)
-    # engine.learn_loop()
-    engine = Engine("human", 25, True)
-    engine.top_loop()
+    """ 4 arguments:
+    
+    py engine.py <name> <gen> <isDisplayOn>
+
+    6 arguments:
+
+    py engine.py <name> <gen> <species> <individual> <isDisplayOn>
+    
+    """
+    argv = sys.argv
+    if len(argv) == 4:
+        if argv[3].lower() == "false" or argv[3] == '0': isDisplayOn = False
+        else: isDisplayOn = True
+        engine = Engine(argv[1], int(argv[2]), isDisplayOn)
+        top = engine.gen.getTopIndividual()
+        engine.specific_loop(top[0], top[1])
+    elif len(argv) == 6:
+        if argv[5].lower() == "false" or argv[5] == '0': isDisplayOn = False
+        engine = Engine(argv[1], int(argv[2]), isDisplayOn)
+        engine.specific_loop(int(argv[3]), int(argv[4]))
+    else:
+        print("Invalid arguments")
     

@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import List
 from typing import Dict
 from typing import Tuple
+import copy
 
 path = 'neat/data/'
 
@@ -36,23 +37,28 @@ class Generation(object):
 
 
     def createGeneration(self, name):
+        """
+        Creates a new generation initialized with basic genomes
+        """
         self.name = name
         for i in range(config.population):
             individual = self.addToSpecies(Individual.basicIndividual(self))
-            individual.network = Network(individual)        ## Not necessary
+            individual.createNetwork()
 
 
     def evaluateCurrent(self, inputs : List[float]) -> List[float]:
+        """ Evaluates the current individual """
         species = self.species[self.currentSpecies]
         individual = species.individuals[self.currentIndividual]
-        individual.network = Network(individual)
         return individual.network.evaluate(inputs)
 
 
     def nextGeneration(self):
+        """ Saves current generation and creates a new one """
         # save generation x
         self.saveGeneration(self.name)
-        # create generation x + 1
+        # create generation x + 1:
+        # Selection
         self.cullSpecies(False)
         self.rankGlobally()
         self.removeStaleSpecies()
@@ -60,6 +66,7 @@ class Generation(object):
         for species in self.species: species.calculateAverageFitness()
         self.removeWeakSpecies()
         sum = self.totalAverageFitness()
+        # Replace with breeding
         children = []
         for species in self.species:
             breed = math.floor(species.averageFitness / sum * config.population) - 1
@@ -148,9 +155,12 @@ class Generation(object):
 
 
     def addToSpecies(self, individualChild : Individual) -> Individual:
+        """
+        Add child to one species; if not similar enough, then create new species.
+        """
         foundSpecies = False
         for species in self.species:
-            if species.individuals == [] or (not foundSpecies and Individual.sameSpecies(individualChild, species.individuals[0])):
+            if not foundSpecies and Individual.sameSpecies(individualChild, species.individuals[0]):
                 species.individuals.append(individualChild)
                 foundSpecies = True
         if not foundSpecies:
@@ -161,6 +171,11 @@ class Generation(object):
 
 
     def cullSpecies(self, cutToOne : bool):
+        """
+        Removes the worst half of the individuals of the species
+
+        cut to one: Only the best survives in each species.
+        """
         for species in self.species:
             species.individuals = sorted(species.individuals, key = lambda x : x.fitness)
             remaining = math.ceil(len(species.individuals) / 2)
@@ -169,6 +184,9 @@ class Generation(object):
 
 
     def removeStaleSpecies(self):
+        """
+        Removes species that are not improving (stale)
+        """
         survived = []
         for species in self.species:
             species.individuals = sorted(species.individuals, key = lambda x : -x.fitness)
@@ -246,6 +264,8 @@ class Individual:
         self.mutationRates["disable"]       = config.chance.disable_mutation_chance
         self.mutationRates["step"]          = config.stepsize
     
+    def createNetwork(self):
+        self.network = Network(self)
 
     @staticmethod
     def basicIndividual(generation: Generation):
@@ -256,14 +276,7 @@ class Individual:
     
 
     def clone(self) -> Individual:
-        copy = Individual()
-        copy.genes = self.genes
-        copy.fitness = self.fitness
-        copy.network = self.network
-        copy.maxNeuron = self.maxNeuron
-        copy.globalRank = self.globalRank
-        copy.mutationRates = self.mutationRates
-        return copy
+        return copy.deepcopy(self)
 
 
     def randomNeuron(self, notInput):
@@ -372,6 +385,7 @@ class Individual:
         while p > 0:
             if random.random() < p: self.enableDisableMutate(False)
             p = p - 1
+        self.fitness = 0
     
 
     @staticmethod
@@ -445,13 +459,7 @@ class Gene():
 
 
     def clone(self):
-        copy = Gene()
-        copy.into = self.into
-        copy.out = self.out
-        copy.weight = self.weight
-        copy.enabled = self.enabled
-        copy.innovation = self.innovation
-        return copy
+        return copy.deepcopy(self)
 
 
 class Neuron():
@@ -482,13 +490,13 @@ class Network():
         for i in range(num_inputs):
             self.neurons[i].value = normalize(inputs[i])
         
-        for i in self.neurons:
+        for key,neuron in sorted(self.neurons.items()):
             sum = 0
-            for incomingGene in self.neurons[i].incoming:
+            for incomingGene in neuron.incoming:
                 incomingNeuron : Neuron = self.neurons[incomingGene.into]
                 sum = sum + incomingGene.weight * incomingNeuron.value
-            if len(self.neurons[i].incoming) > 0:
-                self.neurons[i].value = sigmoid(sum)
+            if len(neuron.incoming) > 0:
+                neuron.value = sigmoid(sum)
         outputs = []
         for i in range(num_outputs):
             outputs.append(self.neurons[config.max_nodes + i].value)
@@ -496,7 +504,7 @@ class Network():
 
 
 def normalize(x):
-    return (x % math.pi) / math.pi * 2 - 1
+    return (x % (2 * math.pi)) / math.pi - 1
 
 
 def sigmoid(x):
@@ -509,7 +517,7 @@ def run():
     g.createGeneration("human")
     s = g.species[g.currentSpecies]
     i = s.individuals[g.currentIndividual]
-    i.network = Network(i)
+    i.createNetwork()
     return g, s, i
 
 
