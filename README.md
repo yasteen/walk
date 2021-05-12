@@ -1,4 +1,4 @@
-# walk - IN PROGRESS
+# walk
 
 The program simulates a physics environment with various 2D models. A "creature" (model)
 has limbs that it can control. The creature dies if it touches the left wall in
